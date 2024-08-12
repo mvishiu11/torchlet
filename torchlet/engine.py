@@ -1,24 +1,30 @@
 import numpy as np
 
+from torchlet.visualization import check_graphviz_installed
+from torchlet.visualization import draw_graphviz
+from torchlet.visualization import draw_matplotlib
+
 
 class Element:
-    """Stores a scalar or vector and its gradient.
+    """Stores a scalar or vector and its gradient, along with an optional label.
 
     Attributes:
         data (np.ndarray): The value of the element.
         grad (np.ndarray or None): The gradient of the element, initialized to None.
+        label (str): The optional label for the element.
         _backward (function): The function to compute the backward pass.
         _prev (set): Set of parent elements in the computation graph.
         _op (str): The operation that produced this element.
     """
 
-    def __init__(self, data, _children=(), _op="") -> None:
-        """Initializes an Element with data and optional gradient.
+    def __init__(self, data, _children=(), _op="", label=None):
+        """Initializes an Element with data, optional gradient, and label.
 
         Args:
             data (float or np.ndarray): The scalar or vector data.
             _children (tuple, optional): Parent elements in the computation graph.
             _op (str, optional): The operation that produced this element.
+            label (str, optional): The label for the element.
         """
         self.data = (
             np.array(data, dtype=np.float64)
@@ -29,6 +35,7 @@ class Element:
         self._backward = lambda: None
         self._prev = set(_children)
         self._op = _op
+        self.label = label
 
     def _ensure_grad_initialized(self) -> None:
         """Ensures that the gradient is initialized."""
@@ -134,6 +141,26 @@ class Element:
         self.grad = np.ones_like(self.data, dtype=np.float64)
         for v in reversed(topo):
             v._backward()
+
+    def visualize(self, method="matplotlib"):
+        """Visualizes the computational graph for this Element.
+
+        Args:
+            method (str): The method to use for visualization ('matplotlib' or 'graphviz').
+        """
+        if method == "matplotlib":
+            draw_matplotlib(self)
+        elif method == "graphviz":
+            if not check_graphviz_installed():
+                raise RuntimeError(
+                    "Graphviz is not installed on your system. Please install it to use this visualization method."
+                )
+            dot = draw_graphviz(self)
+            dot.render(view=True)
+        else:
+            raise ValueError(
+                "Unsupported visualization method. Choose 'matplotlib' or 'graphviz'."
+            )
 
     def __repr__(self) -> str:
         """Returns a string representation of the Element."""
