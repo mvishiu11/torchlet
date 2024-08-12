@@ -1,26 +1,65 @@
-class Element:
-    """ Stores a single scalar or vector and its gradient. """
+import numpy as np
 
-    def __init__(self, data, _children=(), _op=''):
-        self.data = data
-        self.grad = 0
-        # internal variables used for autograd graph construction
+class Element:
+    """Stores a scalar or vector and its gradient.
+
+    Attributes:
+        data (np.ndarray): The value of the element.
+        grad (np.ndarray or None): The gradient of the element, initialized to None.
+        _backward (function): The function to compute the backward pass.
+        _prev (set): Set of parent elements in the computation graph.
+        _op (str): The operation that produced this element.
+    """
+
+    def __init__(self, data, _children=(), _op='') -> None:
+        """Initializes an Element with data and optional gradient.
+
+        Args:
+            data (float or np.ndarray): The scalar or vector data.
+            _children (tuple, optional): Parent elements in the computation graph.
+            _op (str, optional): The operation that produced this element.
+        """
+        self.data = np.array(data) if not isinstance(data, np.ndarray) else data
+        self.grad = None  # Lazy initialization of gradients
         self._backward = lambda: None
         self._prev = set(_children)
-        self._op = _op  # the op that produced this node, for graphviz / debugging / etc
+        self._op = _op
 
-    def __add__(self, other):
+    def _ensure_grad_initialized(self) -> None:
+        """Ensures that the gradient is initialized."""
+        if self.grad is None:
+            self.grad = np.zeros_like(self.data)
+
+    def __add__(self, other) -> 'Element':
+        """Performs addition with another Element or scalar.
+
+        Args:
+            other (Element or float): The element or scalar to add.
+
+        Returns:
+            Element: A new Element representing the result.
+        """
         other = other if isinstance(other, Element) else Element(other)
         out = Element(self.data + other.data, (self, other), '+')
 
         def _backward():
+            self._ensure_grad_initialized()
+            other._ensure_grad_initialized()
             self.grad += out.grad
             other.grad += out.grad
         out._backward = _backward
 
         return out
 
-    def __mul__(self, other):
+    def __mul__(self, other) -> 'Element':
+        """Performs multiplication with another Element or scalar.
+
+        Args:
+            other (Element or float): The element or scalar to multiply.
+
+        Returns:
+            Element: A new Element representing the result.
+        """
         other = other if isinstance(other, Element) else Element(other)
         out = Element(self.data * other.data, (self, other), '*')
 
@@ -31,8 +70,16 @@ class Element:
 
         return out
 
-    def __pow__(self, other):
-        assert isinstance(other, (int, float)), "only supporting int/float powers for now"
+    def __pow__(self, other) -> 'Element':
+        """Performs exponentiation with int or scalar. Does not support Element for now.
+        
+        Args:
+            other (int or float): The element or scalar to raise to the power of.
+            
+        Returns:
+            Element: A new Element representing the result.
+        """
+        assert isinstance(other, (int, float)), "Torchlet only supports int/float powers for now"
         out = Element(self.data**other, (self,), f'**{other}')
 
         def _backward():
@@ -41,7 +88,12 @@ class Element:
 
         return out
 
-    def relu(self):
+    def relu(self) -> 'Element':
+        """Applies the ReLU activation function to the Element.
+        
+        Returns:
+            Element: A new Element representing the result.
+        """
         out = Element(0 if self.data < 0 else self.data, (self,), 'ReLU')
 
         def _backward():
@@ -50,8 +102,8 @@ class Element:
 
         return out
 
-    def backward(self):
-        # topological order all of the children in the graph
+    def backward(self) -> None:
+        """Computes the gradient of the Element via backpropagation (via reverse-mode autodiff on dynamic DAG)."""
         topo = []
         visited = set()
 
@@ -63,32 +115,84 @@ class Element:
                 topo.append(v)
 
         build_topo(self)
-
-        # go one variable at a time and apply the chain rule to get its gradient
-        self.grad = 1
+        self.grad = np.ones_like(self.data)
         for v in reversed(topo):
             v._backward()
 
-    def __neg__(self):
+    def __repr__(self) -> str:
+        """Returns a string representation of the Element."""
+        return f"Element(data={self.data}, grad={self.grad})"
+
+    def __neg__(self) -> 'Element':
+        """Negates the Element.
+
+        Returns:
+            Element: A new Element representing the negation.
+        """
         return self * -1
 
-    def __radd__(self, other):
+    def __radd__(self, other) -> 'Element':
+        """Performs addition with another Element or scalar. This is the reverse fallback for addition.
+        
+        Args:
+            other (Element or float): The element or scalar to add.
+            
+        Returns:
+            Element: A new Element representing the result.
+        """
         return self + other
 
-    def __sub__(self, other):
+    def __sub__(self, other) -> 'Element':
+        """Performs subtraction with another Element or scalar.
+        
+        Args:
+            other (Element or float): The element or scalar to subtract.
+            
+        Returns:
+            Element: A new Element representing the result.
+        """
         return self + (-other)
 
-    def __rsub__(self, other):
+    def __rsub__(self, other) -> 'Element':
+        """Performs subtraction with another Element or scalar. This is the reverse fallback for subtraction.
+        
+        Args:
+            other (Element or float): The element or scalar to subtract.
+            
+        Returns:
+            Element: A new Element representing the result.
+        """
         return other + (-self)
 
-    def __rmul__(self, other):
+    def __rmul__(self, other) -> 'Element':
+        """Performs multiplication with another Element or scalar. This is the reverse fallback for multiplication.
+        
+        Args:
+            other (Element or float): The element or scalar to multiply.
+            
+        Returns:
+            Element: A new Element representing the result.
+        """
         return self * other
 
-    def __truediv__(self, other):
+    def __truediv__(self, other) -> 'Element':
+        """Performs division with another Element or scalar.
+        
+        Args:
+            other (Element or float): The element or scalar to divide.
+            
+        Returns:
+            Element: A new Element representing the result.
+        """
         return self * other**-1
 
-    def __rtruediv__(self, other):
+    def __rtruediv__(self, other) -> 'Element':
+        """Performs division with another Element or scalar. This is the reverse fallback for division.
+        
+        Args:
+            other (Element or float): The element or scalar to divide.
+            
+        Returns:
+            Element: A new Element representing the result.
+        """
         return other * self**-1
-
-    def __repr__(self):
-        return f"Element(data={self.data}, grad={self.grad})"
