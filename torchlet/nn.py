@@ -1,5 +1,7 @@
 import random
+
 from torchlet.engine import Element
+
 
 class Module:
     """Base class for all neural network modules."""
@@ -16,6 +18,7 @@ class Module:
             list: A list of parameters (Element objects).
         """
         return []
+
 
 class Neuron(Module):
     """Represents a single neuron in the network.
@@ -54,6 +57,7 @@ class Neuron(Module):
         """Returns a string representation of the Neuron."""
         return f"{'ReLU' if self.nonlin else 'Linear'}Neuron({len(self.w)})"
 
+
 class Layer(Module):
     """Represents a layer of neurons in the network.
 
@@ -89,6 +93,7 @@ class Layer(Module):
         """Returns a string representation of the Layer."""
         return f"Layer of [{', '.join(str(n) for n in self.neurons)}]"
 
+
 class MLP(Module):
     """Represents a multi-layer perceptron (MLP) network.
 
@@ -99,7 +104,10 @@ class MLP(Module):
 
     def __init__(self, nin, nouts):
         sz = [nin] + nouts
-        self.layers = [Layer(sz[i], sz[i+1], nonlin=i != len(nouts) - 1) for i in range(len(nouts))]
+        self.layers = [
+            Layer(sz[i], sz[i + 1], nonlin=i != len(nouts) - 1)
+            for i in range(len(nouts))
+        ]
 
     def __call__(self, x):
         """Computes the output of the MLP for a given input.

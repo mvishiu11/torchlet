@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class Element:
     """Stores a scalar or vector and its gradient.
 
@@ -11,7 +12,7 @@ class Element:
         _op (str): The operation that produced this element.
     """
 
-    def __init__(self, data, _children=(), _op='') -> None:
+    def __init__(self, data, _children=(), _op="") -> None:
         """Initializes an Element with data and optional gradient.
 
         Args:
@@ -30,7 +31,7 @@ class Element:
         if self.grad is None:
             self.grad = np.zeros_like(self.data)
 
-    def __add__(self, other) -> 'Element':
+    def __add__(self, other) -> "Element":
         """Performs addition with another Element or scalar.
 
         Args:
@@ -40,18 +41,19 @@ class Element:
             Element: A new Element representing the result.
         """
         other = other if isinstance(other, Element) else Element(other)
-        out = Element(self.data + other.data, (self, other), '+')
+        out = Element(self.data + other.data, (self, other), "+")
 
         def _backward():
             self._ensure_grad_initialized()
             other._ensure_grad_initialized()
             self.grad += out.grad
             other.grad += out.grad
+
         out._backward = _backward
 
         return out
 
-    def __mul__(self, other) -> 'Element':
+    def __mul__(self, other) -> "Element":
         """Performs multiplication with another Element or scalar.
 
         Args:
@@ -61,43 +63,48 @@ class Element:
             Element: A new Element representing the result.
         """
         other = other if isinstance(other, Element) else Element(other)
-        out = Element(self.data * other.data, (self, other), '*')
+        out = Element(self.data * other.data, (self, other), "*")
 
         def _backward():
             self.grad += other.data * out.grad
             other.grad += self.data * out.grad
+
         out._backward = _backward
 
         return out
 
-    def __pow__(self, other) -> 'Element':
+    def __pow__(self, other) -> "Element":
         """Performs exponentiation with int or scalar. Does not support Element for now.
-        
+
         Args:
             other (int or float): The element or scalar to raise to the power of.
-            
+
         Returns:
             Element: A new Element representing the result.
         """
-        assert isinstance(other, (int, float)), "Torchlet only supports int/float powers for now"
-        out = Element(self.data**other, (self,), f'**{other}')
+        assert isinstance(
+            other, (int, float)
+        ), "Torchlet only supports int/float powers for now"
+        out = Element(self.data**other, (self,), f"**{other}")
 
         def _backward():
-            self.grad += (other * self.data**(other-1)) * out.grad
+            self.grad += (other * self.data ** (other - 1)) * out.grad
+
         out._backward = _backward
 
         return out
 
-    def relu(self) -> 'Element':
+    def relu(self) -> "Element":
         """Applies the ReLU activation function to the Element.
-        
+
         Returns:
             Element: A new Element representing the result.
         """
-        out = Element(0 if self.data < 0 else self.data, (self,), 'ReLU')
+        out = Element(0 if self.data < 0 else self.data, (self,), "ReLU")
 
         def _backward():
             self.grad += (out.data > 0) * out.grad
+
         out._backward = _backward
 
         return out
@@ -123,7 +130,7 @@ class Element:
         """Returns a string representation of the Element."""
         return f"Element(data={self.data}, grad={self.grad})"
 
-    def __neg__(self) -> 'Element':
+    def __neg__(self) -> "Element":
         """Negates the Element.
 
         Returns:
@@ -131,67 +138,67 @@ class Element:
         """
         return self * -1
 
-    def __radd__(self, other) -> 'Element':
+    def __radd__(self, other) -> "Element":
         """Performs addition with another Element or scalar. This is the reverse fallback for addition.
-        
+
         Args:
             other (Element or float): The element or scalar to add.
-            
+
         Returns:
             Element: A new Element representing the result.
         """
         return self + other
 
-    def __sub__(self, other) -> 'Element':
+    def __sub__(self, other) -> "Element":
         """Performs subtraction with another Element or scalar.
-        
+
         Args:
             other (Element or float): The element or scalar to subtract.
-            
+
         Returns:
             Element: A new Element representing the result.
         """
         return self + (-other)
 
-    def __rsub__(self, other) -> 'Element':
+    def __rsub__(self, other) -> "Element":
         """Performs subtraction with another Element or scalar. This is the reverse fallback for subtraction.
-        
+
         Args:
             other (Element or float): The element or scalar to subtract.
-            
+
         Returns:
             Element: A new Element representing the result.
         """
         return other + (-self)
 
-    def __rmul__(self, other) -> 'Element':
+    def __rmul__(self, other) -> "Element":
         """Performs multiplication with another Element or scalar. This is the reverse fallback for multiplication.
-        
+
         Args:
             other (Element or float): The element or scalar to multiply.
-            
+
         Returns:
             Element: A new Element representing the result.
         """
         return self * other
 
-    def __truediv__(self, other) -> 'Element':
+    def __truediv__(self, other) -> "Element":
         """Performs division with another Element or scalar.
-        
+
         Args:
             other (Element or float): The element or scalar to divide.
-            
+
         Returns:
             Element: A new Element representing the result.
         """
         return self * other**-1
 
-    def __rtruediv__(self, other) -> 'Element':
+    def __rtruediv__(self, other) -> "Element":
         """Performs division with another Element or scalar. This is the reverse fallback for division.
-        
+
         Args:
             other (Element or float): The element or scalar to divide.
-            
+
         Returns:
             Element: A new Element representing the result.
         """
