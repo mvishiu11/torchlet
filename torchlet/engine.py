@@ -156,7 +156,7 @@ class Element:
                     "Graphviz is not installed on your system. Please install it to use this visualization method."
                 )
             dot = draw_graphviz(self)
-            dot.render(view=True)
+            dot.render("../images/torchlet_vis_graphviz.png", view=True)
         else:
             raise ValueError(
                 "Unsupported visualization method. Choose 'matplotlib' or 'graphviz'."

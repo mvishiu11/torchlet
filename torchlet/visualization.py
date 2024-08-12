@@ -73,7 +73,7 @@ def draw_matplotlib(root):
         graph,
         pos,
         labels={n: n._op for n in nodes if n._op},
-        font_size=10,
+        font_size=20,
         font_color="red",
     )
     nx.draw_networkx_labels(
@@ -83,7 +83,7 @@ def draw_matplotlib(root):
             n: f"{n.label}\nValue: {format_value(n.data)}\nGrad: {format_value(n.grad)}"
             for n in nodes
         },
-        font_size=8,
+        font_size=10,
         font_color="black",
     )
 
@@ -100,7 +100,7 @@ def draw_graphviz(root):
     Args:
         root (Element): The root Element of the computational graph.
     """
-    dot = Digraph(format="svg", graph_attr={"rankdir": "LR"})  # LR = left to right
+    dot = Digraph(format="png", graph_attr={"rankdir": "LR"})  # LR = left to right
 
     nodes, edges = trace(root)
     for n in nodes:

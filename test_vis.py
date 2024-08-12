@@ -9,8 +9,7 @@ if __name__ == "__main__":
     d = c + a
     d.label = "d"
 
+    d.backward()
     d.visualize(
         method="graphviz"
-    )  # method='matplotlib' for Matplotlib visualization from Micrograd
-    d.backward()
-    d.visualize()  # method='graphviz' for Graphviz visualization from Micrograd
+    )  # method='graphviz' for Graphviz visualization from Micrograd
