@@ -20,7 +20,11 @@ class Element:
             _children (tuple, optional): Parent elements in the computation graph.
             _op (str, optional): The operation that produced this element.
         """
-        self.data = np.array(data) if not isinstance(data, np.ndarray) else data
+        self.data = (
+            np.array(data, dtype=np.float64)
+            if not isinstance(data, np.ndarray)
+            else data.astype(np.float64)
+        )
         self.grad = None  # Lazy initialization of gradients
         self._backward = lambda: None
         self._prev = set(_children)
@@ -29,7 +33,7 @@ class Element:
     def _ensure_grad_initialized(self) -> None:
         """Ensures that the gradient is initialized."""
         if self.grad is None:
-            self.grad = np.zeros_like(self.data)
+            self.grad = np.zeros_like(self.data, dtype=np.float64)
 
     def __add__(self, other) -> "Element":
         """Performs addition with another Element or scalar.
@@ -66,6 +70,8 @@ class Element:
         out = Element(self.data * other.data, (self, other), "*")
 
         def _backward():
+            self._ensure_grad_initialized()
+            other._ensure_grad_initialized()
             self.grad += other.data * out.grad
             other.grad += self.data * out.grad
 
@@ -88,6 +94,8 @@ class Element:
         out = Element(self.data**other, (self,), f"**{other}")
 
         def _backward():
+            self._ensure_grad_initialized()
+            other._ensure_grad_initialized()
             self.grad += (other * self.data ** (other - 1)) * out.grad
 
         out._backward = _backward
@@ -103,6 +111,7 @@ class Element:
         out = Element(0 if self.data < 0 else self.data, (self,), "ReLU")
 
         def _backward():
+            self._ensure_grad_initialized()
             self.grad += (out.data > 0) * out.grad
 
         out._backward = _backward
@@ -122,13 +131,33 @@ class Element:
                 topo.append(v)
 
         build_topo(self)
-        self.grad = np.ones_like(self.data)
+        self.grad = np.ones_like(self.data, dtype=np.float64)
         for v in reversed(topo):
             v._backward()
 
     def __repr__(self) -> str:
         """Returns a string representation of the Element."""
         return f"Element(data={self.data}, grad={self.grad})"
+
+    def __getitem__(self, idx) -> "Element":
+        """Allows subscripting of the Element, returns an Element for the item at idx.
+
+        Args:
+            idx (int): Index to access the data.
+
+        Returns:
+            Element: A new Element for the indexed data.
+        """
+        return Element(self.data[idx], _children=(self,), _op="getitem")
+
+    def __setitem__(self, idx, value) -> None:
+        """Allows setting item at idx for the Element's data.
+
+        Args:
+            idx (int): Index to access the data.
+            value (Element or float): The value to set.
+        """
+        self.data[idx] = value.data if isinstance(value, Element) else value
 
     def __neg__(self) -> "Element":
         """Negates the Element.
