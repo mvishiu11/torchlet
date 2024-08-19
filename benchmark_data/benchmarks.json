@@ -1,0 +1,8 @@
+{
+    "Addition Benchmark": 2.6895960004367225,
+    "Multiplication Benchmark": 2.0824160001211567,
+    "Backward Pass Benchmark": 68.22099976488971,
+    "MLP Forward Pass Benchmark": 364.73215999649256,
+    "MLP Backward Pass Benchmark": 582.9889996675774,
+    "Zero Grad Benchmark": 4.379940000944771
+}
