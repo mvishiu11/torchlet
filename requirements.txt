@@ -2,3 +2,4 @@ numpy
 graphviz
 matplotlib
 networkx
+cython
